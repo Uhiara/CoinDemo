@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -125,7 +126,7 @@ fun OnBoardingScreen(navController: NavHostController) {
                 },
                 enabled = pagerState.currentPage > 0
             ) {
-                Text("Previous")
+                Text("Previous", color = Color.White)
             }
 
             Button(
@@ -141,7 +142,7 @@ fun OnBoardingScreen(navController: NavHostController) {
                 },
                 colors = ButtonDefaults.buttonColors(colorResource(id = R.color.teal))
             ) {
-                Text(if (pagerState.currentPage < pagerState.pageCount - 1) "Next" else "Get Started")
+                Text(if (pagerState.currentPage < pagerState.pageCount - 1) "Next" else "Get Started", color = Color.White)
             }
         }
     }

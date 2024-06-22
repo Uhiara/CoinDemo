@@ -23,8 +23,9 @@ fun NavGraph() {
             OnBoardingScreen(navController)
         }
         composable("Home Screen") {
-            val viewModel: HomeScreenViewModel = hiltViewModel()
-            HomeScreen(state = viewModel.state, onEvent = viewModel::onEvent)
+            HomeScreen(state = HomeScreenState()) {
+
+            }
         }
     }
 }

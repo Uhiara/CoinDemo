@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    id ("kotlin-kapt")
+    id ("com.google.dagger.hilt.android")
 }
 
 android {
@@ -69,6 +71,7 @@ dependencies {
 
     //Compose Navigation
     implementation(libs.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     //Pager
     implementation(libs.accompanist.pager)
@@ -86,5 +89,8 @@ dependencies {
 
     //Dagger Hilt
     implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
+
+    // Coil
+    implementation(libs.coil.compose)
 }

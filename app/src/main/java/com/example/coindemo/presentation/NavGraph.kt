@@ -14,6 +14,7 @@ import com.example.coindemo.presentation.onboarding.SplashScreen
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
+    val viewModel: HomeScreenViewModel = hiltViewModel()
 
     NavHost(navController = navController, startDestination = "Splash Screen") {
         composable("Splash Screen") {
@@ -23,9 +24,7 @@ fun NavGraph() {
             OnBoardingScreen(navController)
         }
         composable("Home Screen") {
-            HomeScreen(state = HomeScreenState()) {
-
-            }
+            HomeScreen(state = viewModel.state, onEvent = viewModel::onEvent)
         }
     }
 }

@@ -90,6 +90,7 @@ dependencies {
     //Dagger Hilt
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+    kapt(libs.room.compiler)
 
     // Coil
     implementation(libs.coil.compose)

@@ -8,7 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.coindemo.domain.model.Resource
 import com.example.coindemo.domain.repository.CurrencyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import javax.inject.Inject
@@ -28,23 +30,28 @@ class HomeScreenViewModel @Inject constructor(
             HomeScreenEvent.FromCurrencySelect -> {
                 state = state.copy(selection = SelectionState.FROM)
             }
+
             HomeScreenEvent.ToCurrencySelect -> {
                 state = state.copy(selection = SelectionState.TO)
             }
+
             is HomeScreenEvent.BottomSheetItemClicked -> {
                 updateCurrencyValue(value = event.value)
             }
+
             is HomeScreenEvent.NumberButtonClicked -> TODO()
         }
     }
 
     private fun getCurrencyRateList() {
         viewModelScope.launch {
-            repository.getCurrencyRatesList().collectLatest { results ->
-                state = when(results) {
+            repository.getCurrencyRatesList()
+                .flowOn(Dispatchers.IO)
+                .collectLatest { results ->
+                state = when (results) {
                     is Resource.Error -> {
                         state.copy(
-                            currencyRates = results.data?.associateBy{it.code} ?: emptyMap(),
+                            currencyRates = results.data?.associateBy { it.code } ?: emptyMap(),
                             error = null
                         )
                     }
@@ -68,14 +75,14 @@ class HomeScreenViewModel @Inject constructor(
         val fromCurrencyRate = state.currencyRates[state.fromCurrencyValue]?.rate ?: 0.0
         val toCurrencyRate = state.currencyRates[state.toCurrencyValue]?.rate ?: 0.0
 
-        val updateCurrencyValue = when(value) {
+        val updateCurrencyValue = when (value) {
             "C" -> "0.00"
             else -> if (currentCurrencyValue == "0.00") value else currentCurrencyValue + value
         }
 
         val numberFormat = DecimalFormat("#.00")
 
-        when(state.selection) {
+        when (state.selection) {
             SelectionState.FROM -> {
                 val fromValue = updateCurrencyValue.toDoubleOrNull() ?: 0.0
                 val toValue = fromValue / fromCurrencyRate * toCurrencyRate
@@ -84,6 +91,7 @@ class HomeScreenViewModel @Inject constructor(
                     toCurrencyValue = numberFormat.format(toValue)
                 )
             }
+
             SelectionState.TO -> {
                 val toValue = updateCurrencyValue.toDoubleOrNull() ?: 0.0
                 val fromValue = toValue / toCurrencyRate * fromCurrencyRate

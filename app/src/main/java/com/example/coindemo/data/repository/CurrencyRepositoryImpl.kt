@@ -39,7 +39,7 @@ class CurrencyRepositoryImpl(
                         )
                     )
                 } catch (e: IOException) {
-                    emit(Resource.Error("Oops, something went wrong!", getLocalRateCurrency()))
+                    emit(Resource.Error("Oops, something went wrong! ${e.message}", getLocalRateCurrency()))
                 }
 
             }

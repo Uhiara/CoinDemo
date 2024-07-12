@@ -12,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
-import java.text.DecimalFormat
+import java.text.NumberFormat
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,11 +35,18 @@ class HomeScreenViewModel @Inject constructor(
                 state = state.copy(selection = SelectionState.TO)
             }
 
-            is HomeScreenEvent.BottomSheetItemClicked -> {
+            is HomeScreenEvent.NumberButtonClicked -> {
                 updateCurrencyValue(value = event.value)
             }
 
-            is HomeScreenEvent.NumberButtonClicked -> TODO()
+            is HomeScreenEvent.BottomSheetItemClicked -> {
+                if (state.selection == SelectionState.FROM) {
+                    state = state.copy(fromCurrencyCode = event.value)
+                } else if (state.selection == SelectionState.TO) {
+                    state = state.copy(toCurrencyCode = event.value)
+                }
+                updateCurrencyValue("")
+            }
         }
     }
 
@@ -72,32 +79,33 @@ class HomeScreenViewModel @Inject constructor(
             SelectionState.FROM -> state.fromCurrencyValue
             SelectionState.TO -> state.toCurrencyValue
         }
-        val fromCurrencyRate = state.currencyRates[state.fromCurrencyValue]?.rate ?: 0.0
-        val toCurrencyRate = state.currencyRates[state.toCurrencyValue]?.rate ?: 0.0
+        val fromCurrencyRate = state.currencyRates[state.fromCurrencyCode]?.rate ?: 0.0
+        val toCurrencyRate = state.currencyRates[state.toCurrencyCode]?.rate ?: 0.0
 
-        val updateCurrencyValue = when (value) {
+        val updatedCurrencyValue = when (value) {
             "C" -> "0.00"
             else -> if (currentCurrencyValue == "0.00") value else currentCurrencyValue + value
         }
 
-        val numberFormat = DecimalFormat("#.00")
+        val numberFormat = NumberFormat.getNumberInstance()
+
 
         when (state.selection) {
             SelectionState.FROM -> {
-                val fromValue = updateCurrencyValue.toDoubleOrNull() ?: 0.0
+                val fromValue = updatedCurrencyValue.toDoubleOrNull() ?: 0.0
                 val toValue = fromValue / fromCurrencyRate * toCurrencyRate
                 state = state.copy(
-                    fromCurrencyValue = updateCurrencyValue,
+                    fromCurrencyValue = updatedCurrencyValue,
                     toCurrencyValue = numberFormat.format(toValue)
                 )
             }
 
             SelectionState.TO -> {
-                val toValue = updateCurrencyValue.toDoubleOrNull() ?: 0.0
+                val toValue = updatedCurrencyValue.toDoubleOrNull() ?: 0.0
                 val fromValue = toValue / toCurrencyRate * fromCurrencyRate
                 state = state.copy(
-                    fromCurrencyValue = updateCurrencyValue,
-                    toCurrencyValue = numberFormat.format(fromValue)
+                    toCurrencyValue = updatedCurrencyValue,
+                    fromCurrencyValue = numberFormat.format(fromValue)
                 )
             }
         }

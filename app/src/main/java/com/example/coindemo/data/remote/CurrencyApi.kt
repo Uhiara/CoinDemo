@@ -8,7 +8,7 @@ import retrofit2.http.Query
 interface CurrencyApi {
     @GET ("v1/latest")
     suspend fun getLatestRates(
-        @Query("apiKey") apiKey: String = API_KEY
+        @Query("apikey") apiKey: String = API_KEY
     ) : Response<CurrencyDto>
 
     companion object {

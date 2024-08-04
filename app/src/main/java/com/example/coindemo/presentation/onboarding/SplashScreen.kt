@@ -14,12 +14,18 @@ import com.example.coindemo.R
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavHostController) {
-
+fun SplashScreen(navController: NavHostController, mainViewModel: MainViewModel) {
     LaunchedEffect(key1 = true) {
         delay(1000)
-        navController.popBackStack()
-        navController.navigate("OnBoarding Screen")
+        if (mainViewModel.isOnboardingComplete.value) {
+            navController.navigate("Home Screen") {
+                popUpTo("Splash Screen") { inclusive = true }
+            }
+        } else {
+            navController.navigate("OnBoarding Screen") {
+                popUpTo("Splash Screen") { inclusive = true }
+            }
+        }
     }
     Column(
         Modifier.fillMaxSize(),

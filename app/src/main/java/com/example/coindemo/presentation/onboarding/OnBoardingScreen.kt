@@ -1,6 +1,5 @@
 package com.example.coindemo.presentation.onboarding
 
-import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,18 +24,16 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.coindemo.R
 import com.example.coindemo.presentation.common.CommonText
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun OnBoardingScreen(navController: NavHostController) {
+fun OnBoardingScreen(navController: NavHostController, mainViewModel: MainViewModel) {
 
     val images = listOf(
         R.drawable.coinxchangei,
@@ -136,8 +133,10 @@ fun OnBoardingScreen(navController: NavHostController) {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
                     } else {
-                        navController.popBackStack()
-                        navController.navigate("Home Screen")
+                        mainViewModel.completeOnboarding()
+                        navController.navigate("Home Screen"){
+                            popUpTo("OnBoarding Screen") { inclusive = true }
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(colorResource(id = R.color.teal))
@@ -146,11 +145,4 @@ fun OnBoardingScreen(navController: NavHostController) {
             }
         }
     }
-}
-
-@Preview (showBackground = true)
-@Preview (uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun OnBoardingScreenPreview() {
-    OnBoardingScreen(navController = rememberNavController())
 }

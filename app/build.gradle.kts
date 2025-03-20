@@ -1,18 +1,19 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
-    id ("kotlin-kapt")
+    alias(libs.plugins.kotlin.compose)
+    kotlin("kapt")
     id ("com.google.dagger.hilt.android")
 }
 
 android {
     namespace = "com.example.coindemo"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.coindemo"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -72,9 +73,6 @@ dependencies {
     //Compose Navigation
     implementation(libs.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
-
-    //Pager
-    implementation(libs.accompanist.pager)
 
     //Retrofit
     implementation(libs.retrofit)

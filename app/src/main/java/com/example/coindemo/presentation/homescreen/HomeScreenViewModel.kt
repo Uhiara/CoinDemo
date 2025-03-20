@@ -27,25 +27,23 @@ class HomeScreenViewModel @Inject constructor(
 
     fun onEvent(event: HomeScreenEvent) {
         when (event) {
-            HomeScreenEvent.FromCurrencySelect -> {
-                state = state.copy(selection = SelectionState.FROM)
-            }
-
-            HomeScreenEvent.ToCurrencySelect -> {
-                state = state.copy(selection = SelectionState.TO)
-            }
-
-            is HomeScreenEvent.NumberButtonClicked -> {
-                updateCurrencyValue(value = event.value)
-            }
-
+            HomeScreenEvent.FromCurrencySelect -> state = state.copy(selection = SelectionState.FROM)
+            HomeScreenEvent.ToCurrencySelect -> state = state.copy(selection = SelectionState.TO)
+            is HomeScreenEvent.NumberButtonClicked -> updateCurrencyValue(event.value)
             is HomeScreenEvent.BottomSheetItemClicked -> {
-                if (state.selection == SelectionState.FROM) {
-                    state = state.copy(fromCurrencyCode = event.value)
-                } else if (state.selection == SelectionState.TO) {
-                    state = state.copy(toCurrencyCode = event.value)
+                state = if (state.selection == SelectionState.FROM) {
+                    state.copy(
+                        fromCurrencyCode = event.value,
+                        fromCurrencyValue = "0.00", // Reset to "0.00" after currency change
+                        toCurrencyValue = "0.00"   // Reset to "0.00" after currency change
+                    )
+                } else {
+                    state.copy(
+                        toCurrencyCode = event.value,
+                        fromCurrencyValue = "0.00", // Reset to "0.00" after currency change
+                        toCurrencyValue = "0.00"   // Reset to "0.00" after currency change
+                    )
                 }
-                updateCurrencyValue("")
             }
         }
     }
@@ -55,57 +53,54 @@ class HomeScreenViewModel @Inject constructor(
             repository.getCurrencyRatesList()
                 .flowOn(Dispatchers.IO)
                 .collectLatest { results ->
-                state = when (results) {
-                    is Resource.Error -> {
-                        state.copy(
-                            currencyRates = results.data?.associateBy { it.code } ?: emptyMap(),
-                            error = null
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        state.copy(
+                    state = when (results) {
+                        is Resource.Error -> state.copy(
                             currencyRates = results.data?.associateBy { it.code } ?: emptyMap(),
                             error = results.message
                         )
+                        is Resource.Success -> state.copy(
+                            currencyRates = results.data?.associateBy { it.code } ?: emptyMap(),
+                            error = null // Clear error on success
+                        )
+                        is Resource.Loading -> state // Added support for Loading state, though not fully utilized here
                     }
                 }
-            }
         }
     }
 
     private fun updateCurrencyValue(value: String) {
-        val currentCurrencyValue = when (state.selection) {
+        val currentValue = when (state.selection) {
             SelectionState.FROM -> state.fromCurrencyValue
             SelectionState.TO -> state.toCurrencyValue
         }
-        val fromCurrencyRate = state.currencyRates[state.fromCurrencyCode]?.rate ?: 0.0
-        val toCurrencyRate = state.currencyRates[state.toCurrencyCode]?.rate ?: 0.0
+        val fromRate = state.currencyRates[state.fromCurrencyCode]?.rate ?: 1.0
+        val toRate = state.currencyRates[state.toCurrencyCode]?.rate ?: 1.0
+        val numberFormat = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }
 
-        val updatedCurrencyValue = when (value) {
-            "C" -> "0.00"
-            else -> if (currentCurrencyValue == "0.00") value else currentCurrencyValue + value
+        val updatedValue = when (value) {
+            "C" -> "0.00" // Reset to "0.00" explicitly
+            "." -> if (currentValue.contains(".")) currentValue else "$currentValue."
+            else -> {
+                val newValue = if (currentValue == "0.00") value else currentValue + value
+                if (newValue.count { it == '.' } > 1 || newValue.length > 10) currentValue else newValue
+            }
         }
-
-        val numberFormat = NumberFormat.getNumberInstance()
-
 
         when (state.selection) {
             SelectionState.FROM -> {
-                val fromValue = updatedCurrencyValue.toDoubleOrNull() ?: 0.0
-                val toValue = fromValue / fromCurrencyRate * toCurrencyRate
+                val fromValue = updatedValue.toDoubleOrNull() ?: 0.0
+                val toValue = fromValue / fromRate * toRate
                 state = state.copy(
-                    fromCurrencyValue = updatedCurrencyValue,
-                    toCurrencyValue = numberFormat.format(toValue)
+                    fromCurrencyValue = updatedValue,
+                    toCurrencyValue = if (updatedValue == "0.00") "0.00" else numberFormat.format(toValue) // Ensure "0.00" on reset
                 )
             }
-
             SelectionState.TO -> {
-                val toValue = updatedCurrencyValue.toDoubleOrNull() ?: 0.0
-                val fromValue = toValue / toCurrencyRate * fromCurrencyRate
+                val toValue = updatedValue.toDoubleOrNull() ?: 0.0
+                val fromValue = toValue / toRate * fromRate
                 state = state.copy(
-                    toCurrencyValue = updatedCurrencyValue,
-                    fromCurrencyValue = numberFormat.format(fromValue)
+                    toCurrencyValue = updatedValue,
+                    fromCurrencyValue = if (updatedValue == "0.00") "0.00" else numberFormat.format(fromValue) // Ensure "0.00" on reset
                 )
             }
         }

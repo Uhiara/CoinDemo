@@ -1,7 +1,6 @@
 package com.example.coindemo.presentation.homescreen
 
 import android.content.res.Configuration
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +28,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,8 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,21 +61,13 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    state: HomeScreenState,
-    onEvent: (HomeScreenEvent) -> Unit
+    state: HomeScreenState, onEvent: (HomeScreenEvent) -> Unit
 ) {
-
     val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "C")
-
-    val context = LocalContext.current
-
-    val interactionSource = remember { MutableInteractionSource() }
-
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
-    var shouldBottomSheetShow by remember {
-        mutableStateOf(false)
-    }
+    var shouldBottomSheetShow by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() } // Added for error display
 
     if (shouldBottomSheetShow) {
         ModalBottomSheet(
@@ -89,38 +84,39 @@ fun HomeScreen(
                         fontSize = 40.sp,
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Bold,
-                        color = colorResource(id = R.color.text),
+                        color = colorResource(id = R.color.text)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     HorizontalDivider()
                 }
-            },
-            content = {
-                BottomSheetContent(
-                    onItemClicked = { currencyCode ->
-                        onEvent(HomeScreenEvent.BottomSheetItemClicked(currencyCode))
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            if (!sheetState.isVisible) shouldBottomSheetShow = false
-                        }
-                    },
-                    currenciesList = state.currencyRates.values.toList()
-                )
-            })
-    }
-
-    LaunchedEffect(key1 = state.error) {
-        if (state.error != null) {
-            Toast.makeText(context, state.error, Toast.LENGTH_LONG).show()
+            }
+        ) {
+            BottomSheetContent(
+                onItemClicked = { currencyCode ->
+                    onEvent(HomeScreenEvent.BottomSheetItemClicked(currencyCode))
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        if (!sheetState.isVisible) shouldBottomSheetShow = false
+                    }
+                },
+                currenciesList = state.currencyRates.values.toList()
+            )
         }
     }
 
-    Surface(
-        Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    LaunchedEffect(state.error) {
+        if (state.error != null) {
+            snackbarHostState.showSnackbar(state.error) // Replaced Toast with SnackBar
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.SpaceAround
         ) {
@@ -151,23 +147,33 @@ fun HomeScreen(
                         currencyName = state.currencyRates[state.fromCurrencyCode]?.name ?: "",
                         onDroppedIconClicked = {
                             shouldBottomSheetShow = true
-                            onEvent(HomeScreenEvent.FromCurrencySelect)
                         }
                     )
-                    Text(
-                        text = state.fromCurrencyValue,
-                        fontSize = 40.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        color = colorResource(id = R.color.text),
-                        modifier = Modifier.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = { onEvent(HomeScreenEvent.FromCurrencySelect) }
+                    OutlinedTextField(
+                        value = state.fromCurrencyValue,
+                        onValueChange = {}, // Read-only, no direct edits
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable( // Ensured always clickable to select "From"
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onEvent(HomeScreenEvent.FromCurrencySelect) },
+                        textStyle = TextStyle(
+                            fontSize = 40.sp,
+                            fontFamily = FontFamily.SansSerif,
+                            color = colorResource(id = R.color.text),
+                            textAlign = TextAlign.End
+                        ),
+                        readOnly = true,
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = if (state.selection == SelectionState.FROM) colorResource(id = R.color.teal) else Color.Gray, // Gray when inactive
+                            unfocusedBorderColor = if (state.selection == SelectionState.FROM) colorResource(id = R.color.teal) else Color.Gray, // Gray when inactive
+                            cursorColor = colorResource(id = R.color.teal)
                         )
                     )
                 }
             }
-
             Card(
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant)
@@ -178,15 +184,27 @@ fun HomeScreen(
                         .padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalAlignment = Alignment.End
                 ) {
-                    Text(
-                        text = state.toCurrencyValue,
-                        fontSize = 40.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        color = colorResource(id = R.color.text),
-                        modifier = Modifier.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = { onEvent(HomeScreenEvent.ToCurrencySelect) }
+                    OutlinedTextField(
+                        value = state.toCurrencyValue,
+                        onValueChange = {}, // Read-only, no direct edits
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable( // Ensured always clickable to select "To"
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onEvent(HomeScreenEvent.ToCurrencySelect) },
+                        textStyle = TextStyle(
+                            fontSize = 40.sp,
+                            fontFamily = FontFamily.SansSerif,
+                            color = colorResource(id = R.color.text),
+                            textAlign = TextAlign.End
+                        ),
+                        readOnly = true,
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = if (state.selection == SelectionState.TO) colorResource(id = R.color.teal) else Color.Gray, // Gray when inactive
+                            unfocusedBorderColor = if (state.selection == SelectionState.TO) colorResource(id = R.color.teal) else Color.Gray, // Gray when inactive
+                            cursorColor = colorResource(id = R.color.teal)
                         )
                     )
                     CurrencyRow(
@@ -195,7 +213,6 @@ fun HomeScreen(
                         currencyName = state.currencyRates[state.toCurrencyCode]?.name ?: "",
                         onDroppedIconClicked = {
                             shouldBottomSheetShow = true
-                            onEvent(HomeScreenEvent.ToCurrencySelect)
                         }
                     )
                 }
